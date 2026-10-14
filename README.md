@@ -1,13 +1,13 @@
 # code-schematic
 
-A pseudocode standard and agent skill for explaining codebases. Language-neutral notation, every name linked to the real code at a pinned commit, readable by developers and managers, and usable by coding agents. Includes an HTML renderer.
+A pseudocode standard and agent skill for explaining codebases. Language-neutral notation, every name linked to the real code at a pinned commit, readable by developers and managers, and usable by coding agents. Each schematic set is Markdown for agents and an HTML site for people.
 
 A code schematic works like an electrical schematic. It is simpler than the real thing, it uses a standard notation, and every symbol in it stands for a real part of the code. Developers and engineering managers read it to understand a system. Coding agents (Claude, Copilot, Codex, and others) use it to explain existing code or to build new code from a design.
 
 - **Language-neutral.** One notation for Java, Kotlin, Python, TypeScript, Go, C#, Rust, and similar languages.
 - **Tied to the real code.** A name written like code is a real symbol. Every block points to its source with `@src`, and every schematic is pinned to a commit.
 - **Readable at every level.** A system overview for managers, module and flow schematics for developers, and Given/When/Then examples that can become tests.
-- **Optional HTML site.** A build tool turns schematics into pages where calls link to their sections, `@src` lines link to the exact lines of code, and pseudocode is colour-highlighted.
+- **An HTML site for people, Markdown for agents.** The skill builds the schematics into pages where calls link to their sections, `@src` lines link to the exact lines of code, and pseudocode is colour-highlighted. The Markdown stays the source of truth that agents read and edit.
 
 ## What it looks like
 
@@ -82,21 +82,23 @@ Ask your agent in plain words. For example:
 - "Write schematics for the request path from login to the first page load."
 - "Review the schematics in `schematic/` against the code."
 - "Implement the job queue described in `schematic/jobs/job-queue.md`."
-- "Render the schematics in `schematic/` to HTML."
+- "Rebuild the HTML site for `schematic/`."
 
 In Claude Code you can also call the skill directly with `/code-schematic:code-schematic`.
 
-By default, schematics go in a `schematic/` folder at the root of the documented repo. They are Markdown, so they live next to the code and are reviewed like code.
+By default, schematics go in a `schematic/` folder at the root of the documented repo. They are Markdown, so they live next to the code and are reviewed like code. When the agent writes or changes schematics, it also builds the HTML site into `schematic/_site/` and gives you the path to `index.html`. The site is kept out of git. Say "Markdown only" if you do not want it.
 
-## Render to HTML
+## The HTML site
 
-The build tool needs Node 20 or later, git, and a local clone of the documented repo that contains the pinned commit. It only reads the clone.
+The agent builds the site for you. To build it yourself, you need Node 20 or later, git, and a local clone of the documented repo that contains the pinned commit. The build only reads the clone.
 
 ```
-cd plugins/code-schematic/skills/code-schematic/scripts/build-site
-npm install
-node build.mjs --docs <schematic folder> --repo <local clone> --out <site folder>
+SITE=plugins/code-schematic/skills/code-schematic/scripts/build-site
+npm ci --prefix $SITE                      # first time only
+node $SITE/build.mjs --docs <schematic folder>
 ```
+
+By default the build uses the git repo that holds the schematic folder, and writes the site to `<schematic folder>/_site/` with a `.gitignore` so it is not committed. Use `--repo <local clone>` when the schematics live outside the code's repo, and `--out <folder>` to write the site somewhere else (for example to publish it). The build refuses to delete an `--out` folder that is not empty and that it did not make.
 
 Rebuild after every change to the schematics or to `@commit`. Never edit the HTML by hand. Source links use the GitHub form `<repo>/blob/<sha>/<path>#L<n>`.
 

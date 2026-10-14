@@ -1,6 +1,6 @@
 ---
 name: code-schematic
-description: Write, review, render, or build from code schematics. A code schematic is a set of Markdown pseudocode documents that explains a codebase in a language-neutral notation and ties every name to the real code at a pinned commit. Use when asked to explain or document a codebase, module, or flow for developers or engineering managers; to write or review pseudocode docs; to turn schematics into an HTML site; or to write code from a schematic.
+description: Write, review, render, or build from code schematics. A code schematic is a set of Markdown pseudocode documents that explains a codebase in a language-neutral notation and ties every name to the real code at a pinned commit. Each schematic set is also built into an HTML site for people to read. Use when asked to explain or document a codebase, module, or flow for developers or engineering managers; to write or review pseudocode docs; to turn schematics into an HTML site; or to write code from a schematic.
 ---
 
 # Code Schematic
@@ -10,9 +10,18 @@ A code schematic explains software the way an electrical schematic explains a ci
 Files in this skill:
 
 - `SPEC.md`: the full standard. It is the source of truth. This file only tells you which parts to read for each task.
-- `scripts/build-site/`: renders a schematic folder to a static HTML site.
+- `scripts/build-site/`: builds a schematic folder into a static HTML site.
 
 Words: "the spec" means `SPEC.md`. The documents written with it are "schematics" (the system overview, module schematics, flow schematics). Do not call them specs.
+
+## Two forms: Markdown for agents, HTML for people
+
+Every schematic set has two forms:
+
+- **Markdown** (`schematic/**/*.md`) is the data. It is what you write, what gets committed and reviewed, and what agents read. All edits go here.
+- **HTML** (`schematic/_site/`) is the view for people. It is built from the Markdown and adds source links, colour, and folds. It is not committed (the build adds a `.gitignore` for it).
+
+People read the HTML, so build it by default at the end of every task that writes or changes schematics. Skip the build only if the user says they want Markdown only. Agents (you included) always read the Markdown, never the HTML.
 
 ## Write schematics for existing code
 
@@ -21,20 +30,22 @@ Words: "the spec" means `SPEC.md`. The documents written with it are "schematics
 3. Follow the spec's "Instructions for AI agents", section "When writing a schematic from existing code".
 4. Write the system overview (`README.md`) first: modules, code map, then the rest. Then the module schematics. Then flow schematics, if a flow crosses several modules.
 5. Before you finish, check every file against the spec's "Review checklist".
-6. Only read the code. Do not change, build, or run the documented repo unless the user asks.
+6. Build the site (see [Build the HTML site](#build-the-html-site)). Fix every anchor the build reports as not found, then build again.
+7. Only read the code. Do not change, build, or run the documented repo unless the user asks. (Building the schematic site is fine: it only reads the repo.)
 
 ## Review schematics
 
 1. Use the spec's "Review checklist" for each file.
-2. Check the links to code at the pinned commit, for example `git show <commit>:<path> | grep -n <symbol>`:
+2. Build the site. Its list of anchors not found is a quick first check of `@src` and `@test` lines.
+3. Check the links to code at the pinned commit, for example `git show <commit>:<path> | grep -n <symbol>`:
    - every `@src` symbol exists in its file;
    - every `@test` name matches a real test;
    - every code-style name in pseudocode is real, or marked `(inline)` or `(anonymous)`.
-3. Report findings per file, most serious first.
+4. Report findings per file, most serious first. If you fixed any, build the site again.
 
 ## Write code from a schematic
 
-Follow the spec's "When writing code from a schematic". In short:
+Read the Markdown files, not the HTML. Follow the spec's "When writing code from a schematic". In short:
 
 - Contracts are exact.
 - Every `MUST` and `// why:` is a hard constraint.
@@ -44,17 +55,24 @@ Follow the spec's "When writing code from a schematic". In short:
 
 ## Design something new
 
-Use the spec's "Templates". Write `@files` as the paths where the code should go, and `@commit` as the commit you are designing against. Mark undecided points as Open questions.
+Use the spec's "Templates". Write `@files` as the paths where the code should go, and `@commit` as the commit you are designing against. Mark undecided points as Open questions. Then build the site so people can read the design. Its `@src` anchors will be reported as not found until the code exists, which is expected.
 
-## Render to HTML
+## Build the HTML site
 
-Use this when the user wants a page to read or share. It needs Node 20 or later, git, and a local clone of the documented repo that contains the pinned commit.
+The build needs Node 20 or later and git. The documented repo must be a local clone that contains the pinned `@commit`. The build only reads it.
 
 ```
-cd <this skill>/scripts/build-site
-npm install                     # first time only (installs marked)
-node build.mjs --docs <schematic folder> --repo <local clone> --out <site folder>
+SITE=<this skill>/scripts/build-site
+[ -d "$SITE/node_modules" ] || npm ci --prefix "$SITE"     # first time only (installs marked)
+node "$SITE/build.mjs" --docs <schematic folder>
 ```
+
+Defaults:
+
+- `--repo` is the git repository that holds the schematic folder. Pass it when the schematics live outside the code's repo.
+- `--out` is `<schematic folder>/_site`. Pass another folder to publish the site somewhere else. The build refuses to delete a folder that is not empty and that it did not make.
+
+When it finishes, the build prints the path to `index.html` and a list of anchors it could not find. Give the user that path and offer to open it (`open <path>` on macOS, `xdg-open <path>` on Linux). If Node is missing, tell the user and leave the Markdown as it is.
 
 The site adds:
 
@@ -71,3 +89,4 @@ Rebuild after every change to the schematics or to `@commit`. Never edit the HTM
 - Every Behavior block has an `@src` line that points at a symbol, not a line number.
 - Every Example says where it comes from: `@test`, `@test-e2e`, `@derived`, or `@combined`.
 - Write only what the code does. When unsure, add an Open question instead of guessing.
+- Edit the Markdown, then rebuild. A change made only in the HTML is lost on the next build, and agents never see it.

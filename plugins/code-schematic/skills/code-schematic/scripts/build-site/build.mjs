@@ -1,37 +1,70 @@
 // Builds a static HTML site from code schematics (see ../../SPEC.md).
 //
 // Usage:
-//   node build.mjs --docs <schematic folder> --repo <local clone of the code> --out <site folder>
+//   node build.mjs --docs <schematic folder> [--repo <local clone of the code>] [--out <site folder>]
 //                  [--spec <path to SPEC.md>]
 //
 // The schematic folder must have a README.md with @repo and @commit lines. The clone must contain
-// that commit; it is only read, never changed. --spec defaults to the SPEC.md next to this skill,
-// and adds the spec as a page of the site. Markdown stays the source of truth. Rerun after any change.
+// that commit; it is only read, never changed. --repo defaults to the git repository that holds the
+// schematic folder. --out defaults to <schematic folder>/_site, which is kept out of git. --spec
+// defaults to the SPEC.md next to this skill, and adds the spec as a page of the site.
+//
+// Markdown stays the source of truth: agents read the .md files, people read the site. Rerun after
+// any change. The build only deletes an --out folder that is empty or that it made itself.
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Marked, Renderer } from "marked";
+
+const toolDir = fileURLToPath(new URL(".", import.meta.url));
+let Marked, Renderer;
+try {
+	({ Marked, Renderer } = await import("marked"));
+} catch {
+	console.error(`the build tool's dependencies are not installed. Run:\n  npm ci --prefix ${toolDir}`);
+	process.exit(1);
+}
 
 const MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js";
+const SITE_MARKER = ".code-schematic-site";
 
 // ---------- args ----------
 
 const args = Object.fromEntries(
 	process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]]] : acc), []),
 );
-for (const key of ["docs", "repo", "out"]) {
-	if (!args[key]) {
-		console.error(`missing --${key}`);
-		process.exit(1);
-	}
+if (!args.docs) {
+	console.error("missing --docs");
+	process.exit(1);
 }
 const docsDir = path.resolve(args.docs);
-const repoDir = path.resolve(args.repo);
-const outDir = path.resolve(args.out);
+if (!fs.existsSync(path.join(docsDir, "README.md"))) {
+	console.error(`${docsDir} has no README.md (the system overview)`);
+	process.exit(1);
+}
+let repoDir;
+try {
+	repoDir = path.resolve(args.repo || execFileSync("git", ["-C", docsDir, "rev-parse", "--show-toplevel"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim());
+} catch {
+	console.error(`${docsDir} is not inside a git repository, so pass --repo <local clone of the code>`);
+	process.exit(1);
+}
+const defaultOut = !args.out;
+const outDir = path.resolve(args.out || path.join(docsDir, "_site"));
 const defaultSpec = fileURLToPath(new URL("../../SPEC.md", import.meta.url));
 const specPath = args.spec ? path.resolve(args.spec) : fs.existsSync(defaultSpec) ? defaultSpec : null;
+
+// The build wipes --out first, so make sure that cannot take the schematics or the code with it.
+const inside = (child, parent) => child === parent || child.startsWith(parent + path.sep);
+if (inside(docsDir, outDir) || inside(repoDir, outDir)) {
+	console.error(`--out ${outDir} contains the schematics or the repository. Pick a folder of its own.`);
+	process.exit(1);
+}
+if (fs.existsSync(outDir) && fs.readdirSync(outDir).length && !fs.existsSync(path.join(outDir, SITE_MARKER))) {
+	console.error(`--out ${outDir} is not empty and was not made by this tool. Delete it or pick another folder.`);
+	process.exit(1);
+}
 
 // ---------- helpers ----------
 
@@ -73,10 +106,13 @@ function splitTopLevel(s) {
 
 // ---------- docs discovery ----------
 
+// Skips the site folder, dot folders and node_modules, so a site built inside the schematic folder
+// is never read back as a schematic.
 function walk(dir) {
 	return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
 		const p = path.join(dir, e.name);
-		return e.isDirectory() ? walk(p) : e.name.endsWith(".md") ? [p] : [];
+		if (e.isDirectory()) return p === outDir || e.name.startsWith(".") || e.name === "node_modules" ? [] : walk(p);
+		return e.name.endsWith(".md") ? [p] : [];
 	});
 }
 
@@ -812,9 +848,13 @@ for (const doc of docs) {
 	fs.writeFileSync(target, shell(doc, renderDoc(doc)));
 }
 fs.copyFileSync(new URL("./style.css", import.meta.url), path.join(outDir, "style.css"));
+fs.writeFileSync(path.join(outDir, SITE_MARKER), "Built by code-schematic. The build deletes and rewrites this folder.\n");
+// The default site lives next to the schematics, so keep it out of git. Only the Markdown is committed.
+if (defaultOut) fs.writeFileSync(path.join(outDir, ".gitignore"), "*\n");
 
 console.log(`built ${docs.length} pages into ${path.relative(process.cwd(), outDir) || outDir}`);
 console.log(`snapshot ${repoWeb} @ ${shortSha}`);
+console.log(`open ${path.join(outDir, "index.html")}`);
 if (missing.length) {
 	console.log(`\n${missing.length} anchors not found in the repo (linked to the file instead):`);
 	for (const m of missing) console.log(`  ${m}`);
