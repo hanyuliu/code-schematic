@@ -1,0 +1,16 @@
+# Dependencies for the HTML build tool (installed with npm install)
+node_modules/
+
+# Sites built while trying the tool locally
+_site/
+site/
+
+# Logs
+npm-debug.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

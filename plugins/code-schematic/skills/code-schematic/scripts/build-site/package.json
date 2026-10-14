@@ -1,0 +1,12 @@
+{
+  "name": "code-schematic-site",
+  "private": true,
+  "type": "module",
+  "description": "Renders code schematics to a static HTML site with source links, highlighting and folds.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "marked": "18.1.0"
+  }
+}

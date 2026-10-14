@@ -1,0 +1,12 @@
+{
+  "name": "code-schematic-tools",
+  "description": "Code Schematic: pseudocode docs that explain a codebase and link every name to the real code",
+  "owner": { "name": "Hanyu Liu" },
+  "plugins": [
+    {
+      "name": "code-schematic",
+      "source": "./plugins/code-schematic",
+      "description": "Write, review, render, and build from code schematics"
+    }
+  ]
+}
