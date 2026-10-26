@@ -1029,6 +1029,7 @@ This standard combines ideas that already work well on their own:
 ### 1.1
 
 - Added [Plain words](#plain-words): rules for the English parts of a schematic, taken from ASD-STE100 Simplified Technical English. Writing rule 10 and a Review checklist item point to it.
+- The skill now builds the HTML site by default after writing or changing schematics. Markdown stays the source of truth that agents read and edit.
 
 ### 1.0
 
