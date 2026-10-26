@@ -116,7 +116,7 @@ plugins/code-schematic/
 
 ## Versions
 
-The plugin version matches the spec version (now 1.0.0). Each release bumps both, and the spec's Changelog says what changed.
+The plugin version matches the spec version (now 1.1.0). Each release bumps both, and the spec's Changelog says what changed.
 
 ## Contributing
 

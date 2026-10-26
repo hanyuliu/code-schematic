@@ -89,4 +89,5 @@ Rebuild after every change to the schematics or to `@commit`. Never edit the HTM
 - Every Behavior block has an `@src` line that points at a symbol, not a line number.
 - Every Example says where it comes from: `@test`, `@test-e2e`, `@derived`, or `@combined`.
 - Write only what the code does. When unsure, add an Open question instead of guessing.
+- In prose, use one word for each action and avoid vague verbs like "handle" or "process". See the spec's "Plain words".
 - Edit the Markdown, then rebuild. A change made only in the HTML is lost on the next build, and agents never see it.

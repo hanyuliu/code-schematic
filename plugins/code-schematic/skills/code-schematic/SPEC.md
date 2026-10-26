@@ -1,6 +1,6 @@
 # Code Schematic
 
-Spec version 1.0 (changes: [Changelog](#changelog))
+Spec version 1.1 (changes: [Changelog](#changelog))
 
 A code schematic explains software in pseudocode, the way an electrical schematic explains a circuit. It is simpler than the real thing, it uses a standard notation, and every symbol in it stands for a real part. This spec defines how to write one. Use it to explain an existing codebase, to propose a design, or to hand work to a coding agent (Claude, Copilot, Codex, and others).
 
@@ -501,7 +501,7 @@ sort users by last login, newest first
 retry up to 3 times with exponential backoff
 ```
 
-Use a shortcut only when any competent developer would implement it the same way. If there is a choice that matters, write the choice down.
+Use a shortcut only when any competent developer would implement it the same way. If there is a choice that matters, write the choice down. Write shortcuts in [plain words](#plain-words).
 
 ### Rule keywords
 
@@ -541,13 +541,25 @@ These keep schematics readable and keep them true.
 
 1. **Name things as the code does.** If the code says `tryAcquire`, the schematic says `tryAcquire`, not `acquirePermit`. Readers should be able to search the codebase for any code-style name in the schematic. When you need a name the code does not have, follow [Rule 1](#rule-1-code-style-names-are-real-prose-is-a-summary) and mark it `(inline)`.
 2. **Write the what and the why, skip the how-to-type-it.** Leave out logging, null checks, imports, getters, and boilerplate unless they change behavior.
-3. **Keep one level of detail per block.** Do not mix "process the order" with "increment i by 1" in the same function. If a step needs detail, give it its own block below, pointing to the real helper or using an `(inline)` name.
+3. **Keep one level of detail per block.** Do not mix "ship the order" with "increment i by 1" in the same function. If a step needs detail, give it its own block below, pointing to the real helper or using an `(inline)` name.
 4. **Keep every branch that changes behavior.** Simplifying is fine. Dropping an edge case is not. If the code handles it, the schematic mentions it (in Behavior or Rules).
 5. **Explain surprising code with `// why:`.** If a careful reader would ask "why is it done this way?", answer it.
 6. **Prefer short blocks.** Aim for under 30 lines per Behavior block and under 40 lines per Contracts block.
 7. **Use prose for context, pseudocode for logic.** Each section opens with a sentence or two of plain English.
 8. **Do not invent.** When describing existing code, write only what the code does. If you are unsure, say so in Open questions.
 9. **Keep it current.** A wrong schematic is worse than none. Update the schematic in the same change that updates the behavior.
+10. **Use plain words in prose.** Code-style names are exact because they are real symbols. Prose has no such check, so it follows the rules in [Plain words](#plain-words).
+
+### Plain words
+
+These rules cover every part of a schematic written in English: summaries, the prose before each block, prose steps inside pseudocode, comments, rules, and examples. They borrow from ASD-STE100 Simplified Technical English, a controlled language for technical manuals. They do not use its dictionary, which was written for aircraft maintenance and has no words for most software terms.
+
+1. **One word, one meaning.** Pick one word for each action and use it everywhere in the schematic set. If the code saves a job with `storage.save()`, the prose says "save", not "persist" in one place and "store" in another. A reader who sees two words assumes two different actions. Put words with a meaning special to this system in the overview's Glossary.
+2. **Say what happens, not that something happens.** Vague verbs hide the behavior a reader needs. Avoid "handle", "process", "manage", "deal with", "take care of", and "update" with no detail. Write what the code does instead: "log the error and mark the job failed", not "handle the error".
+3. **One action per prose step.** "Check the payload and save the job, then notify the owner" is three steps. Write three lines, so each one can carry its own branch, comment, or `// →` link.
+4. **Keep sentences short.** Aim for 20 words or fewer. Give each sentence a clear subject that does the action: "the worker retries the job", not "the job is retried". In pseudocode, a prose step may leave the subject out when it is the function itself ("retry the job").
+5. **No long noun stacks.** Do not stack more than three nouns. Write "the delay before a retry", not "retry backoff delay config value". A real config key in code style (`retryBackoffDelay`) is a name, not a stack, so it is fine.
+6. **Use the same word as the code.** When the code has a word for a thing (`claim`, `lease`, `tenant`), use that word in prose too, even if a more common word exists.
 
 ## Mapping to real languages
 
@@ -703,6 +715,7 @@ Use this when reviewing a schematic, whether a person or an agent wrote it.
 - [ ] Is each Behavior block at one level of detail and under about 30 lines?
 - [ ] Are error cases, ordering, and concurrency covered in Behavior or Rules?
 - [ ] Does each surprising choice have a `// why:`?
+- [ ] Does the prose follow [Plain words](#plain-words): one word per action, no vague verbs, one action per prose step, short sentences?
 - [ ] Is every Example concrete enough to become a test, and tagged with its source?
 - [ ] Is anything stated that the code does not actually do?
 - [ ] Are unknowns listed in Open questions instead of guessed?
@@ -1004,6 +1017,7 @@ still holds, so retries resume at the right time.
 This standard combines ideas that already work well on their own:
 
 - **RFC 2119**: the MUST / SHOULD / MAY keywords.
+- **ASD-STE100 Simplified Technical English**: one meaning per word, short sentences, and one action per step, used here for the prose parts of a schematic.
 - **Design by contract** (Eiffel, JML, Dafny): stating what must always be true.
 - **Given / When / Then** (Gherkin, BDD): examples that become tests.
 - **C4 model**: describing a system from the top down, one zoom level at a time.
@@ -1011,6 +1025,10 @@ This standard combines ideas that already work well on their own:
 - **Spec-driven development** (GitHub Spec Kit, Kiro): giving coding agents a written spec instead of a long chat.
 
 ## Changelog
+
+### 1.1
+
+- Added [Plain words](#plain-words): rules for the English parts of a schematic, taken from ASD-STE100 Simplified Technical English. Writing rule 10 and a Review checklist item point to it.
 
 ### 1.0
 
