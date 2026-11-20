@@ -2,12 +2,13 @@
 //
 // Usage:
 //   node build.mjs --docs <schematic folder> [--repo <local clone of the code>] [--out <site folder>]
-//                  [--spec <path to SPEC.md>]
+//                  [--spec <path to SPEC.md> | --no-spec]
 //
 // The schematic folder must have a README.md with @repo and @commit lines. The clone must contain
 // that commit; it is only read, never changed. --repo defaults to the git repository that holds the
 // schematic folder. --out defaults to <schematic folder>/_site, which is kept out of git. --spec
-// defaults to the SPEC.md next to this skill, and adds the spec as a page of the site.
+// defaults to the SPEC.md next to this skill, and adds the spec as a page of the site. --no-spec
+// leaves the spec page out, for sites published to readers who don't need it.
 //
 // Markdown stays the source of truth: agents read the .md files, people read the site. Rerun after
 // any change. The build only deletes an --out folder that is empty or that it made itself.
@@ -53,7 +54,7 @@ try {
 const defaultOut = !args.out;
 const outDir = path.resolve(args.out || path.join(docsDir, "_site"));
 const defaultSpec = fileURLToPath(new URL("../../SPEC.md", import.meta.url));
-const specPath = args.spec ? path.resolve(args.spec) : fs.existsSync(defaultSpec) ? defaultSpec : null;
+const specPath = "no-spec" in args ? null : args.spec ? path.resolve(args.spec) : fs.existsSync(defaultSpec) ? defaultSpec : null;
 
 // The build wipes --out first, so make sure that cannot take the schematics or the code with it.
 const inside = (child, parent) => child === parent || child.startsWith(parent + path.sep);
@@ -106,12 +107,12 @@ function splitTopLevel(s) {
 
 // ---------- docs discovery ----------
 
-// Skips the site folder, dot folders and node_modules, so a site built inside the schematic folder
-// is never read back as a schematic.
+// Skips the site folder, dot folders, "_" folders and node_modules, so a site built inside the
+// schematic folder is never read back as a schematic. Keep other Markdown (drafts, posts) in a "_" folder.
 function walk(dir) {
 	return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
 		const p = path.join(dir, e.name);
-		if (e.isDirectory()) return p === outDir || e.name.startsWith(".") || e.name === "node_modules" ? [] : walk(p);
+		if (e.isDirectory()) return p === outDir || e.name.startsWith(".") || e.name.startsWith("_") || e.name === "node_modules" ? [] : walk(p);
 		return e.name.endsWith(".md") ? [p] : [];
 	});
 }

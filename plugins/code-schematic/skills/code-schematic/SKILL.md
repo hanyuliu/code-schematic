@@ -71,6 +71,7 @@ Defaults:
 
 - `--repo` is the git repository that holds the schematic folder. Pass it when the schematics live outside the code's repo.
 - `--out` is `<schematic folder>/_site`. Pass another folder to publish the site somewhere else. The build refuses to delete a folder that is not empty and that it did not make.
+- The site includes the spec as a page. Pass `--no-spec` to leave it out, for example for a blog post.
 
 When it finishes, the build prints the path to `index.html` and a list of anchors it could not find. Give the user that path and offer to open it (`open <path>` on macOS, `xdg-open <path>` on Linux). If Node is missing, tell the user and leave the Markdown as it is.
 
